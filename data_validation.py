@@ -26,17 +26,25 @@ inputarg = str(sys.argv[1:])[1:-1]
 autosys_job = inputarg.strip("")
 autosys_schema = autosys_job.split('_')[0]
 
-# Initialize database connection
+# Initialize DB connection
 mydb = ICDatabase(my_schema)
 conn = mydb.getDbConn(my_schema)
 cur = conn.cursor()
 
 curr_time = datetime.now().strftime('%Y%m%d%H%M%S')
-
 dest_dir = os.environ.get('CDROUT') + "/aml/"
 Exception_dir = r"/data/infocaml/cft_data/send/"
 
 ultimate_status = 'FAIL'
+
+
+def is_weekend(date_string):
+    try:
+        dt_obj = datetime.strptime(date_string, '%d-%b-%Y')
+        return dt_obj.weekday() >= 5  # 5 = Saturday, 6 = Sunday
+    except Exception as e:
+        lg.dfnLogSTDout(f"Error parsing date {date_string}: {str(e)}")
+        return False
 
 
 def fn_get_as_of_dt(v_db_schema, v_date_id):
@@ -76,11 +84,22 @@ def FN_AML_CHECK_DATA_VALIDATION():
 
         for row in sql_main_data:
             v_as_of_dt = fn_get_as_of_dt(autosys_schema, row[2])
+            
+            # 🚫 Skip weekends
+            if is_weekend(v_as_of_dt):
+                lg.dfnLogSTDout(f"Skipping validation for weekend date: {v_as_of_dt}")
+                
+                # Optional: send info email if you want visibility (disabled by default)
+                # subject = f"Skipped: Validation for {autosys_job} on {v_as_of_dt} (Weekend)"
+                # body = f"<p>Data validation was skipped for {autosys_job} as of {v_as_of_dt} because it falls on a weekend.</p>"
+                # send_mail("JOBS_VALIDATION", "AMLTEN", subject, body, [])
+
+                continue
+
             v_val_id = row[1]
             v_handling_type = row[5]
 
             lg.dfnLogSTDout(f'AS_OF_DT for {row[4]} = {v_as_of_dt}')
-
             v_expected_result_value = f"{row[12]} {row[13]}"
 
             if row[3] == 'DEVIATION_CHECK':
@@ -167,7 +186,6 @@ def send_email(v_as_of_dt):
         html_content = f"<p>Validation failed for {autosys_job} as of {v_as_of_dt}. Check attachment.</p>"
 
         result_val = send_mail('JOBS_VALIDATION', 'AMLTEN', mail_subject, html_content, [Exception_dir + Exception_filename])
-
         return 0 if result_val == 0 else 1
 
     except Exception as e:
@@ -180,3 +198,4 @@ if __name__ == '__main__':
     lg.rc = FN_AML_CHECK_DATA_VALIDATION()
     lg.end_step()
     lg.end_script()
+
