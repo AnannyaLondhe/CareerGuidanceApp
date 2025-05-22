@@ -1,0 +1,38 @@
+Slide 2: Fetch Configuration Data from DB
+Retrieve all active rules for the specified job
+
+For each rule, get the latest date using fn_get_as_of_dt()
+
+Calculate the previous month date range (start and end dates)
+
+Query validation results for the previous month joined with config info
+
+Store data in a Pandas DataFrame for further processing
+
+Slide 3: Processing Each Rule
+Filter data for the specific rule
+
+Generate a line chart using Matplotlib
+
+Highlight zero or violated values for easy identification
+
+Save each chart as a PNG image in a designated folder
+
+Slide 4: Processing Each Job
+Build an HTML dashboard embedding all generated images (base64 encoded)
+
+Organize images in a user-friendly layout
+
+Save the complete dashboard as an HTML file
+
+Append dashboard content for inclusion in the email body
+
+Slide 5: Monthly Status Check & Email
+Query the database to check the status of dashboard generation for the month
+
+If the dashboard status is NOT "GENERATED":
+
+Send the generated dashboard via email to stakeholders
+
+Otherwise, skip emailing to avoid duplicates
+
